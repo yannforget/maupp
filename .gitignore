@@ -1,0 +1,6 @@
+data/
+!data/input/case-studies.csv
+notebooks/
+.vscode
+__pycache__
+*.egg-info
