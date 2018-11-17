@@ -314,6 +314,9 @@ def merge(primary, secondary, output_dir):
 
     for band_a in primary:
 
+        if band_a.bname in ('ub', 'pan', 'cirrus'):
+            continue
+
         # get slope and intercept to perform relative normalization
         # of secondary scene.
         band_b = getattr(secondary, band_a.bname)
