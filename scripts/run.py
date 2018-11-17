@@ -621,8 +621,8 @@ def run(case_study, year):
     print('Writing results to disk...')
 
     for data, fname in zip(
-            (water, proba, classes),
-            ('water.tif', 'probabilities.tif', 'classes.tif')):
+            (water, proba, classes, training_samples),
+            ('water.tif', 'probabilities.tif', 'classes.tif', 'training_samples.tif')):
         _write_raster(data, os.path.join(out_dir, fname), profile)
 
     _write_dict(metrics, os.path.join(out_dir, 'metrics.json'))
