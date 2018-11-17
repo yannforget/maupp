@@ -129,7 +129,7 @@ def imagery_preprocessing(case_study, year):
         if not products:
             continue
         out_dir = os.path.join(case_study.inputdir, source, str(year))
-        if os.path.isdir(out_dir):
+        if os.path.isdir(out_dir) and len(os.listdir(out_dir)) >= 1:
             continue
         os.makedirs(out_dir, exist_ok=True)
         main_product = acquisition.find_product(products[0], input_dir)
@@ -653,8 +653,14 @@ if __name__ == '__main__':
     os.makedirs(case_study.outputdir, exist_ok=True)
 
     for year in reversed(sorted(YEARS)):
+
         if os.path.isfile(os.path.join(case_study.outputdir, str(year), 'probabilities.tif')):
             print(str(year) + ' : done.')
             continue
-        run(case_study, year)
-        print(str(year) + ' : done.')
+
+        try:
+            run(case_study, year)
+            print(str(year) + ' : done.')
+        except MissingDataError:
+            print(str(year) + ' : No satellite data available. Skipping...')
+
