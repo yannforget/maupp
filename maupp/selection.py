@@ -298,7 +298,8 @@ def search_sar(aoi, begin, end, dhus_username=None, dhus_password=None,
     # ERS, Envisat
     else:
         products = asarapi.catalog.query(
-            aoi, begin, end, product='precision', contains=contains)
+            aoi, begin, end, product='precision', contains=contains,
+            polarisation='VV')
 
     # harmonize date column label
     if 'date' not in products.columns and 'beginposition' in products.columns:
