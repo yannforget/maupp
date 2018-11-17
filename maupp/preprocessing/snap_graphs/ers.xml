@@ -1,0 +1,71 @@
+<graph id="ERS1_Preprocessing">
+    <version>1.0</version>
+
+    <node id="Update">
+        <operator>Apply-Orbit-File</operator>
+        <sources>
+            <source>${sourceProduct}</source>
+        </sources>
+        <parameters>
+            <orbitType>PRARE Precise (ERS1&amp;2) (Auto Download)</orbitType>
+            <polyDegree>3</polyDegree>
+            <continueOnFail>true</continueOnFail>
+        </parameters>
+    </node>
+
+    <node id="Calibration">
+        <operator>Calibration</operator>
+        <sources>
+            <sourceProduct refid="Update"/>
+        </sources>
+        <parameters>
+            <outputBetaBand>true</outputBetaBand>
+        </parameters>
+    </node>
+
+    <node id="SpeckleReduction">
+        <operator>Speckle-Filter</operator>
+        <sources>
+            <sourceProduct refid="Calibration"/>
+        </sources>
+        <parameters>
+            <filter>Lee</filter>
+            <filterSizeX>3</filterSizeX>
+            <filterSizeY>3</filterSizeY>
+        </parameters>
+    </node>
+
+    <node id="TerrainCorrection">
+        <operator>Terrain-Correction</operator>
+        <sources>
+            <sourceProduct refid="SpeckleReduction"/>
+        </sources>
+        <parameters>
+            <demName>SRTM 1Sec HGT</demName>
+            <mapProjection>${dstcrs}</mapProjection>
+        </parameters>
+    </node>
+
+    <node id="SubsetAOI">
+        <operator>Subset</operator>
+        <sources>
+            <sourceProduct refid="TerrainCorrection"/>
+        </sources>
+        <parameters>
+            <geoRegion>${georegion}</geoRegion>
+            <copyMetadata>true</copyMetadata>
+        </parameters>
+    </node>
+
+    <node id="Write">
+        <operator>Write</operator>
+        <sources>
+            <sourceProduct refid="SubsetAOI"/>
+        </sources>
+        <parameters>
+            <file>${output}</file>
+            <formatName>BEAM-DIMAP</formatName>
+        </parameters>
+    </node>
+
+</graph>

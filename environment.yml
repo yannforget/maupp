@@ -1,0 +1,23 @@
+name: maupp
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - fiona
+  - geojson
+  - geopandas
+  - matplotlib
+  - numpy
+  - pandas
+  - psycopg2
+  - rasterio
+  - scikit-learn
+  - scipy
+  - shapely
+  - tqdm
+  - pip:
+    - asarapi
+    - pylandsat
+    - sentinelsat
+    - elevation

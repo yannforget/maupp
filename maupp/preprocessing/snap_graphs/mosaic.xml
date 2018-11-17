@@ -1,0 +1,28 @@
+<graph id="Mosaicking">
+    <version>1.0</version>
+
+    <node id="Mosaic">
+        <operator>SAR-Mosaic</operator>
+        <sources>
+            <sourceProducts>${sourceProducts}</sourceProducts>
+        </sources>
+        <parameters>
+            <pixelSize>${pixelSize}</pixelSize>
+            <resamplingMethod>${resamplingMethod}</resamplingMethod>
+            <sceneHeight>${sceneHeight}</sceneHeight>
+            <sceneWidth>${sceneWidth}</sceneWidth>
+        </parameters>
+    </node>
+
+    <node id="Write">
+        <operator>Write</operator>
+        <sources>
+            <sourceProduct refid="Mosaic"/>
+        </sources>
+        <parameters>
+            <file>${output}</file>
+            <formatName>BEAM-DIMAP</formatName>
+        </parameters>
+    </node>
+
+</graph>

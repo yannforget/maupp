@@ -1,0 +1,26 @@
+<graph id="Extract_VV">
+    <version>1.0</version>
+
+    <node id="SubsetVV">
+        <operator>Subset</operator>
+        <sources>
+            <source>${sourceProduct}</source>
+        </sources>
+        <parameters>
+            <bandNames>Sigma0_VV</bandNames>
+            <copyMetadata>true</copyMetadata>
+        </parameters>
+    </node>
+
+    <node id="WriteVV">
+        <operator>Write</operator>
+        <sources>
+            <sourceProduct refid="SubsetVV"/>
+        </sources>
+        <parameters>
+            <file>${outputVV}</file>
+            <formatName>GeoTIFF</formatName>
+        </parameters>
+    </node>
+
+</graph>

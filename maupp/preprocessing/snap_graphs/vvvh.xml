@@ -1,0 +1,48 @@
+<graph id="Extract_VV_VH">
+    <version>1.0</version>
+
+    <node id="SubsetVV">
+        <operator>Subset</operator>
+        <sources>
+            <source>${sourceProduct}</source>
+        </sources>
+        <parameters>
+            <bandNames>Gamma0_VV</bandNames>
+            <copyMetadata>true</copyMetadata>
+        </parameters>
+    </node>
+
+    <node id="WriteVV">
+        <operator>Write</operator>
+        <sources>
+            <sourceProduct refid="SubsetVV"/>
+        </sources>
+        <parameters>
+            <file>${outputVV}</file>
+            <formatName>GeoTIFF</formatName>
+        </parameters>
+    </node>
+
+    <node id="SubsetVH">
+        <operator>Subset</operator>
+        <sources>
+            <source>${sourceProduct}</source>
+        </sources>
+        <parameters>
+            <bandNames>Gamma0_VH</bandNames>
+            <copyMetadata>true</copyMetadata>
+        </parameters>
+    </node>
+
+    <node id="WriteVH">
+        <operator>Write</operator>
+        <sources>
+            <sourceProduct refid="SubsetVH"/>
+        </sources>
+        <parameters>
+            <file>${outputVH}</file>
+            <formatName>GeoTIFF</formatName>
+        </parameters>
+    </node>
+
+</graph>
