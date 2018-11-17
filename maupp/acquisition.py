@@ -101,39 +101,6 @@ def download(product_id, output_dir, esa_sso_username, esa_sso_password,
     return find_product(product_id, output_dir)
 
 
-def _fname_pattern(product_id):
-    """Returns a filename pattern corresponding to a given product identifier
-    depending on the satellite platform.
-
-    Parameters
-    ----------
-    product_id : str
-        ERS, Envisat, Sentinel-1 or Landsat product identifier.
-
-    Returns
-    -------
-    pattern : str
-        Filename pattern with wildcards if needed.
-
-    Raises
-    ------
-    ValueError
-        If the product id is not recognized.
-    """
-    platform = guess_platform(product_id)
-    if platform == 'Landsat':
-        pattern = product_id
-    elif platform in ('ERS', 'Envisat'):
-        parts = product_id.split('_')
-        parts[3], parts[4] = '*', '*'
-        pattern = '_'.join(parts) + '*'
-    elif platform == 'Sentinel-1':
-        pattern = product_id + '.SAFE'
-    else:
-        raise ValueError('Unrecognized product id.')
-    return pattern
-
-
 def find_product(product_id, directory):
     """Find a satellite product and returns its absolute path.
 
@@ -154,7 +121,7 @@ def find_product(product_id, directory):
     FileNotFoundError
         If product not found.
     """
-    pattern = _fname_pattern(product_id)
+    pattern = '*' + product_id + '*'
     matches = fnmatch.filter(os.listdir(directory), pattern)
     if not matches:
         return None
