@@ -61,7 +61,7 @@ def coregister(input_path, output_path, crs, transform, width, height):
 
     dst_array = np.zeros(shape=(height, width), dtype='int16')
     reproject(src_array, dst_array, src_transform=src_transform,
-              dst_transform=transform, src_crs=crs,
+              dst_transform=transform, src_crs=src_crs, dst_crs=crs,
               resampling=Resampling.bilinear)
 
     dst_profile = src_profile.copy()
