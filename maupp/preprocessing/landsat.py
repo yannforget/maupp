@@ -75,7 +75,8 @@ def preprocess(product, aoi, crs, output_dir, secondary_product=None):
         dst_mtl = os.path.join(output_dir, 'primary_MTL.txt')
         shutil.copy(src_mtl, dst_mtl)
     
-    return
+    shutil.rmtree(tmp_dir)
+    return output_dir
 
 
 def calibrate(scene, output_dir):
