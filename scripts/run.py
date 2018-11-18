@@ -371,7 +371,7 @@ def filter_training(case_study, training_samples, sar, landsat, year):
         profile = landsat.profile
     _write_raster(
         proba,
-        os.path.join(case_study.outputdir, 'proba_interm.tif'),
+        os.path.join(case_study.outputdir, str(year), 'proba_interm.tif'),
         profile)
 
     filtered = training_samples.copy()
