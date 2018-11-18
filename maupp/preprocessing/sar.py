@@ -12,6 +12,18 @@ from pkg_resources import resource_filename
 from maupp.acquisition import guess_platform
 
 
+ORBIT_FILES = {
+    'Sentinel-1': 'Sentinel Precise (Auto Download)',
+    'Envisat': 'DORIS Precise VOR (ENVISAT) (Auto Download)',
+    'Envisat_ERS': 'DELFT Precise (ENVISAT, ERS1&amp;2) (Auto Download)',
+    'ERS': 'PRARE Precise (ERS1&amp;2) (Auto Download)'
+}
+
+
+class GPTError(Exception):
+    pass
+
+
 def _product_id(filename):
     """Guess product identifier from ERS, Envisat or Sentinel-1 filename."""
     basename = os.path.basename(filename)
@@ -82,11 +94,15 @@ def run_graph(src_product, graph, debug=False, **kwargs):
         cmd.append(src_product)
 
     if debug:
-        subprocess.run(cmd)
+        p = subprocess.run(cmd)
     else:
-        subprocess.run(
+        p = subprocess.run(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    # Raise an error if GPT has failed
+    if p.returncode == 1:
+        raise GPTError
+    return True
 
 def calibrate(src_path, georegion, epsg, out_dir):
     """Preprocess ERS, Envisat or Sentinel-1 product with SNAP.
@@ -113,10 +129,8 @@ def calibrate(src_path, georegion, epsg, out_dir):
     # Use a different SNAP xml graph for each platform
     product_id = _product_id(src_path)
     platform = guess_platform(product_id)
-    if platform == 'ERS':
-        graph = resource_filename(__name__, 'snap_graphs/ers.xml')
-    elif platform == 'Envisat':
-        graph = resource_filename(__name__, 'snap_graphs/envisat.xml')
+    if platform in ('ERS', 'Envisat'):
+        graph = resource_filename(__name__, 'snap_graphs/ers_envisat.xml')
     elif platform == 'Sentinel-1':
         graph = resource_filename(__name__, 'snap_graphs/sentinel1.xml')
     else:
@@ -125,13 +139,29 @@ def calibrate(src_path, georegion, epsg, out_dir):
     dst_product = os.path.join(out_dir, product_id + '.dim')
     os.makedirs(out_dir, exist_ok=True)
 
-    run_graph(
-        src_product=src_path,
-        graph=graph,
-        dstcrs='EPSG:{}'.format(epsg),
-        georegion=georegion,
-        output=dst_product
-    )
+    orbit_type = ORBIT_FILES[platform]
+
+    try:
+        run_graph(
+            src_product=src_path,
+            graph=graph,
+            orbitType=orbit_type,
+            dstcrs='EPSG:{}'.format(epsg),
+            georegion=georegion,
+            output=dst_product)
+    # If GPT failed, try to use DELFT Precise orbit files for
+    # ERS and Envisat products.
+    except GPTError:
+        if platform in ('ERS', 'Envisat'):
+            run_graph(
+                src_product=src_path,
+                graph=graph,
+                orbitType=ORBIT_FILES['Envisat_ERS'],
+                dstcrs='EPSG:{}'.format(epsg),
+                georegion=georegion,
+                output=dst_product)
+        else:
+            raise
 
     return dst_product
 

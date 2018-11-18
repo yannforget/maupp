@@ -1,4 +1,4 @@
-<graph id="Envisat_Preprocessing">
+<graph id="ERS_Envisat_Preprocessing">
     <version>1.0</version>
 
     <node id="Update">
@@ -7,7 +7,7 @@
             <source>${sourceProduct}</source>
         </sources>
         <parameters>
-            <orbitType>DORIS Precise VOR (ENVISAT) (Auto Download)</orbitType>
+            <orbitType>${orbitType}</orbitType>
             <polyDegree>3</polyDegree>
             <continueOnFail>true</continueOnFail>
         </parameters>
