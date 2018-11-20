@@ -3,6 +3,7 @@
 import rasterio
 import numpy as np
 from scipy.ndimage import binary_dilation, uniform_filter, median_filter
+from imblearn.over_sampling import RandomOverSampler
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (f1_score, precision_score, recall_score,
@@ -118,22 +119,21 @@ def random_choice(src_array, size, random_seed=None):
     Returns
     -------
     dst_array : array-like
-        Output raster.
+        Output binary raster.
     """
     if random_seed:
         np.random.seed(random_seed)
     if np.count_nonzero(src_array == 1) == size:
         return src_array
-    pixels = np.where(src_array.ravel() == 1)[0]
-    selected = np.random.choice(pixels, size=size, replace=False)
+    candidates = np.where(src_array.ravel() == 1)[0]
+    selected = np.random.choice(candidates, size=size, replace=False)
     dst_array = np.zeros_like(src_array.ravel())
     dst_array[selected] = 1
-    return dst_array.reshape(src_array.shape)
+    return dst_array.reshape(src_array.shape).astype(np.bool)
 
 
-def under_sampling(samples, max_samples=50000, random_seed=None):
-    """Perform under-sampling of the majority class (usually, the non-built-up
-    class).
+def limit_samples(samples, max_samples=50000, random_seed=None):
+    """Limit max. number of samples per class with random sampling.
 
     Parameters
     ----------
@@ -141,6 +141,31 @@ def under_sampling(samples, max_samples=50000, random_seed=None):
         Input training labels.
     max_samples : int, optional
         Max. number of samples per class.
+    random_seed : int, optional
+        Numpy random seed for reproducbility.
+    
+    Returns
+    -------
+    out_samples : 2d array
+        Output training labels.
+    """
+    out_samples = samples.copy()
+    for class_ in (1, 2):
+        n_samples = np.count_nonzero(out_samples == class_)
+        if n_samples > max_samples:
+            selected = random_choice(
+                out_samples == class_, max_samples, random_seed)
+            out_samples[(samples == class_) & ~selected] = 0
+    return out_samples
+
+
+def under_sampling(samples, random_seed=None):
+    """Perform under-sampling of the majority class.
+
+    Parameters
+    ----------
+    samples : 2d array
+        Input training labels.
     random_seed : int, optional
         Numpy random seed for reproducibility.
 
@@ -150,22 +175,19 @@ def under_sampling(samples, max_samples=50000, random_seed=None):
         Output training labels.
     """
     out_samples = samples.copy()
-    n_positive = np.count_nonzero(out_samples == 1)
-    n_negative = np.count_nonzero(out_samples == 2)
+    n_positive = np.count_nonzero(samples == 1)
+    n_negative = np.count_nonzero(samples == 2)
+
     if n_positive > n_negative:
-        n_samples = min(n_negative, max_samples)
-        positive = random_choice(out_samples == 1, n_samples, random_seed)
-        out_samples[(out_samples == 1) & (positive != 1)] = 0
-    elif n_negative > n_positive:
-        n_samples = min(n_positive, max_samples)
-        negative = random_choice(out_samples == 2, n_samples, random_seed)
-        out_samples[(out_samples == 2) & (negative != 1)] = 0
-    if n_positive > max_samples:
-        positive = random_choice(out_samples == 1, max_samples, random_seed)
-        negative = random_choice(out_samples == 2, max_samples, random_seed)
-        out_samples[:, :] = 0
-        out_samples[positive] = 1
-        out_samples[negative] = 2
+        positive = random_choice(
+            samples == 1, n_negative, random_seed=random_seed)
+        out_samples[(samples == 1) & ~positive] = 0
+
+    if n_negative > n_positive:
+        negative = random_choice(
+            samples == 2, n_positive, random_seed=random_seed)
+        out_samples[(samples == 2) & ~negative] = 0
+
     return out_samples
 
 
@@ -191,30 +213,27 @@ def cross_validation(filenames, training_samples, k=10, max_samples=50000,
     scores : ndarray
         F1-scores as an array of length k.
     """
-    # Perform under-sampling of the majority class.
-    samples = under_sampling(training_samples, max_samples, random_seed)
-
     # Spatial clustering of both positive and negative training samples
     # into k*3 clusters.
     # This is to avoid spatial autocorrelation, i.e. avoiding neighbooring
     # samples of the same class being in both the training and the testing
     # datasets.
-    pos_groups = clustering(samples, 1, n_clusters=k*3,
+    pos_groups = clustering(training_samples, 1, n_clusters=k*3,
                             random_state=random_seed)
-    neg_groups = clustering(samples, 2, n_clusters=k*3,
+    neg_groups = clustering(training_samples, 2, n_clusters=k*3,
                             random_state=random_seed)
     groups = np.maximum(pos_groups, neg_groups)
     groups = groups[groups > 0].ravel()
 
     # Prediction mask is larger in order to allow post-processing of the
     # classification result with a moving window filter.
-    train_mask = samples > 0
+    train_mask = training_samples > 0
     pred_mask = binary_dilation(train_mask, iterations=3)
 
     # Transform input data
     X = transform(filenames, mask=pred_mask)
     X_train = transform(filenames, mask=train_mask)
-    y_train = samples[train_mask].ravel()
+    y_train = training_samples[train_mask].ravel()
 
     # Perform K-Fold cross-validation using groups to avoid
     # spatial autocorrelation and including a post-processing
@@ -226,7 +245,7 @@ def cross_validation(filenames, training_samples, k=10, max_samples=50000,
     for train, test in folds.split(X_train, y_train, groups=groups):
         rf.fit(X_train[train], y_train[train])
         proba = rf.predict_proba(X)[:, 0]
-        img = np.zeros(shape=samples.shape, dtype=np.float32)
+        img = np.zeros(shape=training_samples.shape, dtype=np.float32)
         img[pred_mask] = proba
         img = uniform_filter(img, size=3)
         y_pred = img[train_mask][test] >= 0.5
@@ -258,9 +277,10 @@ def train(filenames, training_labels, max_samples=50000, random_seed=None,
     model : classifier
         Sklearn classifier object (fitted).
     """
-    samples = under_sampling(training_labels, max_samples, random_seed)
-    X_train = transform(filenames, mask=samples > 0)
-    y_train = samples[samples > 0].ravel()
+    X_train = transform(filenames, mask=training_labels > 0)
+    y_train = training_labels[training_labels > 0].ravel()
+    sampler = RandomOverSampler(random_state=random_seed)
+    X_train, y_train = sampler.fit_resample(X_train, y_train)
     rf = RandomForestClassifier(random_state=random_seed, **kwargs)
     rf.fit(X_train, y_train)
     return rf

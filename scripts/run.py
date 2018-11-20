@@ -160,6 +160,8 @@ def water_mask(case_study, crs, transform, width, height):
     polygons = db.water(case_study.aoi_latlon)
     geoms = [feature['geometry'] for feature in polygons]
     geoms = [transform_geom(WGS84, crs, geom) for geom in geoms]
+    if len(geoms) == 0:
+        return np.zeros(shape=(height, width), dtype=np.bool)
     water = rasterize(
         shapes=geoms,
         out_shape=(height, width),
@@ -549,6 +551,9 @@ def _write_dict(dictionnary, filename):
 def run(case_study, year):
     """Run full analysis for a given case study and year."""
     out_dir = os.path.join(case_study.outputdir, str(year))
+    expected_path = os.path.join(out_dir, 'classes.tif')
+    if os.path.isfile(expected_path):
+        return True
     os.makedirs(out_dir, exist_ok=True)
 
     print('Data selection...')
@@ -592,6 +597,9 @@ def run(case_study, year):
         training_samples = filter_training(
             case_study, training_samples, sar, landsat, year)
 
+    training_samples = classification.limit_samples(
+        training_samples, MAX_TRAINING_SAMPLES, RANDOM_SEED)
+
     print('Classification...')
     proba, importances = classify(
         case_study, filenames, training_samples, year)
@@ -609,9 +617,9 @@ def run(case_study, year):
         metrics['fpr'] = list(metrics['fpr'])
         metrics['tpr'] = list(metrics['tpr'])
 
-    cv_mean, cv_std = cross_validation(filenames, training_samples, k=10)
-    metrics['cv_mean'] = cv_mean
-    metrics['cv_std'] = cv_std
+    #cv_mean, cv_std = cross_validation(filenames, training_samples, k=10)
+    #metrics['cv_mean'] = cv_mean
+    #metrics['cv_std'] = cv_std
 
     if sar:
         profile = sar.profile
