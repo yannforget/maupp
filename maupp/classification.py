@@ -381,8 +381,9 @@ def post_processing(probabilities, slope, water, proba_threshold=0.9,
     classes : 2d array
         Binary raster (built-up vs. non-built-up areas).
     """
-    classes = (probabilities >= proba_threshold).astype(np.uint8)
+    probas = probabilities.copy()
+    probas = uniform_filter(probas, filter_size)
+    classes = (probas >= proba_threshold).astype(np.uint8)
     classes[water] = 0
     classes[slope >= max_slope] = 0
-    classes = median_filter(classes, size=filter_size)
     return classes
