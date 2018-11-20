@@ -617,9 +617,9 @@ def run(case_study, year):
         metrics['fpr'] = list(metrics['fpr'])
         metrics['tpr'] = list(metrics['tpr'])
 
-    #cv_mean, cv_std = cross_validation(filenames, training_samples, k=10)
-    #metrics['cv_mean'] = cv_mean
-    #metrics['cv_std'] = cv_std
+    cv_mean, cv_std = cross_validation(filenames, training_samples, k=10)
+    metrics['cv_mean'] = cv_mean
+    metrics['cv_std'] = cv_std
 
     if sar:
         profile = sar.profile
