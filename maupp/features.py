@@ -226,7 +226,7 @@ class SAR(Features):
         for polar in polarisations:
 
             src_array = getattr(self, polar)
-            src_array = histogram_cutting(src_array, percent=2, mask=water)
+            src_array = histogram_cutting(src_array, percent=2, mask=~water)
             src_array = rescale_to_uint8(src_array)
 
             src_profile = self.profile.copy()
