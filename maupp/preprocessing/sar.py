@@ -149,14 +149,25 @@ def calibrate(src_path, georegion, epsg, out_dir):
             dstcrs='EPSG:{}'.format(epsg),
             georegion=georegion,
             output=dst_product)
-    # If GPT failed, try to use DELFT Precise orbit files for
-    # ERS and Envisat products.
+
     except GPTError:
+        # If GPT failed, try to use DELFT Precise orbit files for
+        # ERS and Envisat products.
         if platform in ('ERS', 'Envisat'):
             run_graph(
                 src_product=src_path,
                 graph=graph,
                 orbitType=ORBIT_FILES['Envisat_ERS'],
+                dstcrs='EPSG:{}'.format(epsg),
+                georegion=georegion,
+                output=dst_product)
+        # For Sentinel-1 products, try without Thermal Noise Removal.
+        elif platform == 'Sentinel-1':
+            graph = resource_filename(
+                __name__, 'snap_graphs/sentinel1_no_tnr.xml')
+            run_graph(
+                src_product=src_path,
+                graph=graph,
                 dstcrs='EPSG:{}'.format(epsg),
                 georegion=georegion,
                 output=dst_product)
