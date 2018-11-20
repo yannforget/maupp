@@ -47,7 +47,8 @@ setup(
         'asarapi',
         'pylandsat',
         'sentinelsat',
-        'elevation'
+        'elevation',
+        'imbalanced-learn'
     ],
     include_package_data=True
 )

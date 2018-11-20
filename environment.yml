@@ -16,6 +16,7 @@ dependencies:
   - scipy
   - shapely
   - tqdm
+  - imbalanced-learn
   - pip:
     - asarapi
     - pylandsat
