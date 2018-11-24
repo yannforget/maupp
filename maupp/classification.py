@@ -255,8 +255,7 @@ def cross_validation(filenames, training_samples, k=10, max_samples=50000,
     return np.array(scores)
 
 
-def train(filenames, training_labels, max_samples=50000, random_seed=None,
-          **kwargs):
+def train(filenames, training_labels, random_seed=None, **kwargs):
     """Train a Random Forest model.
 
     Parameters
@@ -265,8 +264,6 @@ def train(filenames, training_labels, max_samples=50000, random_seed=None,
         Filenames of raster datasets.
     training_labels : 2d array
         Training labels (1=BuiltUp, 2=NonBuiltUp).
-    max_samples : int, optional
-        Max. number of training samples per class.
     random_seed : int, optional
         Numpy and Sklearn random seed for reproducibility.
     **kwagrs
