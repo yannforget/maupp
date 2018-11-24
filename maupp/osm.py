@@ -152,8 +152,8 @@ class OSMDatabase:
         if self.empty:
             return False
         cur = self.connection.cursor()
-        sql = """SELECT osm_id FROM osm_polygon WHERE ST_Intersects(
-                   way, ST_Transform(ST_GeomFromText(%s, 4326), 3857))
+        sql = """SELECT osm_id FROM osm_polygon WHERE ST_Contains(
+                   ST_Transform(ST_GeomFromText(%s, 4326), 3857), way)
                  LIMIT 1;
               """
         cur.execute(sql, (aoi, ))
