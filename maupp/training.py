@@ -48,6 +48,10 @@ def buildings(osm, aoi, crs, transform, width, height, min_coverage=0.2):
     tmp_transform, tmp_width, tmp_height = rescale_transform(
         transform, width, height, SCALE)
     features = osm.buildings(aoi)
+
+    if len(features) == 0:
+        return np.zeros(shape=(height, width), dtype=np.bool)
+
     features = reproject_features(features, src_crs=WGS84, dst_crs=crs)
     footprints = rasterize(
         shapes=iter_geoms(features),
@@ -97,6 +101,8 @@ def blocks(osm, aoi, crs, transform, width, height, max_surface=30000):
     ROAD_TAGS = ('secondary', 'tertiary', 'residential')
     roads = gpd.GeoDataFrame.from_features(osm.roads(aoi), crs=WGS84)
     roads = roads[roads.highway.isin(ROAD_TAGS)]
+    if len(roads) == 0:
+        return np.zeros(shape=(height, width), dtype=np.bool)
 
     # Compute urban blocks from the road network and filter the
     # output polygons by their surface
@@ -146,12 +152,17 @@ def nonbuilt(osm, aoi, crs, transform, width, height):
 
     def tag(row):
         for key in ('landuse', 'leisure', 'natural'):
-            if not pd.isna(row[key]):
-                return row[key]
+            if key in row:
+                if not pd.isna(row[key]):
+                    return row[key]
         return None
 
     nonbuilt['tag'] = nonbuilt.apply(tag, axis=1)
     nonbuilt = nonbuilt[nonbuilt.tag.isin(NONBUILT_TAGS)]
+
+    if len(nonbuilt) == 0:
+        return np.zeros(shape=(height, width), dtype=np.bool)
+
     nonbuilt = nonbuilt.to_crs(crs)
     return rasterize(
         shapes=(mapping(geom) for geom in nonbuilt.geometry),
@@ -197,13 +208,16 @@ def remote(osm, aoi, crs, transform, width, height, min_distance=250):
         dtype='uint8').astype(np.bool)
 
     builtup = osm.buildings(aoi)
-    builtup = reproject_features(builtup, WGS84, crs)
-    builtup = rasterize(
-        shapes=iter_geoms(builtup),
-        out_shape=(height, width),
-        transform=transform,
-        all_touched=True,
-        dtype='uint8').astype(np.bool)
+    if len(builtup) > 0:
+        builtup = reproject_features(builtup, WGS84, crs)
+        builtup = rasterize(
+            shapes=iter_geoms(builtup),
+            out_shape=(height, width),
+            transform=transform,
+            all_touched=True,
+            dtype='uint8').astype(np.bool)
+    else:
+        builtup = np.zeros(shape=(height, width), dtype=np.bool)
 
     # Calculate distance of each pixel from roads or buildings
     # and multiply by pixel size to output values in meters.

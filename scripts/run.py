@@ -97,10 +97,11 @@ def update_osm_database(case_study):
     dst_datafile = os.path.join(
         case_study.inputdir, 'osm', case_study.id + '.osm.pbf')
     os.makedirs(os.path.dirname(dst_datafile), exist_ok=True)
-    if not os.path.isfile(dst_datafile):
+    if not db.data_in_aoi(case_study.aoi_latlon.wkt):
+        if os.path.isfile(dst_datafile):
+            os.remove(dst_datafile)
         osm.geoextract_osmpbf(main_datafile, dst_datafile,
                               case_study.aoi_latlon.bounds)
-    if not db.data_in_aoi(case_study.aoi_latlon.wkt):
         db.import_data(dst_datafile)
     db.connection.close()
     return True
@@ -353,10 +354,11 @@ def filter_training(case_study, training_samples, sar, landsat, year):
         case_study, case_study.crs, transform2015, width2015, height2015)
 
     samples2015 = training_labels(buildings, blocks, nonbuilt, remote, water)
+    samples2015 = classification.limit_samples(
+        samples2015, max_samples=50000, random_seed=RANDOM_SEED)
     rf = classification.train(
         filenames=fnames2015,
         training_labels=samples2015,
-        max_samples=MAX_TRAINING_SAMPLES,
         n_jobs=-1,
         n_estimators=RF_N_ESTIMATORS,
         max_features=RF_MAX_FEATURES)
@@ -456,7 +458,6 @@ def classify(case_study, filenames, training_samples, year):
         rf = classification.train(
             filenames=filenames,
             training_labels=training_samples,
-            max_samples=MAX_TRAINING_SAMPLES,
             n_estimators=RF_N_ESTIMATORS,
             max_features=RF_MAX_FEATURES,
             n_jobs=-1)
@@ -617,7 +618,9 @@ def run(case_study, year):
         metrics['fpr'] = list(metrics['fpr'])
         metrics['tpr'] = list(metrics['tpr'])
 
-    cv_mean, cv_std = cross_validation(filenames, training_samples, k=10)
+    training_samples_ = classification.limit_samples(
+        training_samples, 50000, RANDOM_SEED)
+    cv_mean, cv_std = cross_validation(filenames, training_samples_, k=10)
     metrics['cv_mean'] = cv_mean
     metrics['cv_std'] = cv_std
 
