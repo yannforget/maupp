@@ -96,7 +96,7 @@ def find_wrs(aoi, min_cover=99.):
     wrs = pd.DataFrame(wrs)
     wrs.cover = wrs.cover * 100
     wrs.set_index(['path', 'row'], inplace=True)
-    wrs.sort_values(by='cover', ascending=False)
+    wrs.sort_values(by='cover', ascending=False, inplace=True)
     if wrs.cover.max() >= min_cover:
         return (wrs.iloc[0].name,)
     else:
