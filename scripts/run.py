@@ -8,6 +8,7 @@ from functools import partial
 import itertools
 import os
 import json
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -208,8 +209,6 @@ def feature_extraction(case_study, year):
         if sar_is_available:
             if landsat.transform != sar.transform:
                 landsat.coregister(sar.path('vv'))
-        if 'ndsv' not in landsat.available:
-            landsat.compute_ndsv()
 
     return sar, landsat, water
 
@@ -564,12 +563,14 @@ def _write_dict(dictionnary, filename):
     return filename
 
 
-def run(case_study, year):
+def run(case_study, year, override=False):
     """Run full analysis for a given case study and year."""
     out_dir = os.path.join(case_study.outputdir, str(year))
-    expected_path = os.path.join(out_dir, 'classes.tif')
-    if os.path.isfile(expected_path):
-        return True
+    if os.path.isdir(out_dir):
+        if override:
+            shutil.rmtree(out_dir)
+        else:
+            return True
     os.makedirs(out_dir, exist_ok=True)
 
     print('Data selection...')
@@ -679,10 +680,6 @@ if __name__ == '__main__':
     os.makedirs(case_study.outputdir, exist_ok=True)
 
     for year in reversed(sorted(YEARS)):
-
-        if os.path.isfile(os.path.join(case_study.outputdir, str(year), 'probabilities.tif')):
-            print(str(year) + ' : done.')
-            continue
 
         try:
             run(case_study, year)
