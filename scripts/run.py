@@ -366,9 +366,16 @@ def filter_training(case_study, training_samples, sar, landsat, year):
     X = classification.transform(fnames)
     crs, transform, width, height = _profile(fnames[0])
     proba = classification.predict(rf, X, width, height)
-    proba = uniform_filter(proba, 3)
 
-    # Write raster to disk
+    # Post-process the RF probabilistic output with
+    # an uniform filter with a size of 3x3 or 5x5
+    # depending on the spatial resolution.
+    if transform.a <= 15:
+        proba = uniform_filter(proba, 5)
+    else:
+        proba = uniform_filter(proba, 3)
+
+    # Write intermediate probabilities to disk
     if sar:
         profile = sar.profile
     else:
@@ -378,9 +385,17 @@ def filter_training(case_study, training_samples, sar, landsat, year):
         os.path.join(case_study.outputdir, str(year), 'proba_interm.tif'),
         profile)
 
+    # Filter positive training samples with low probability of being
+    # built-up in the current year according to the intermediate
+    # product. Increase the threshold if the number of positive
+    # samples is inferior to 5000.
     filtered = training_samples.copy()
-    threshold = np.percentile(proba[filtered == 2], 2015 - year)
-    filtered[proba <= threshold] = 0
+    threshold = 0.5
+    n_samples = np.count_nonzero(proba[filtered == 1] >= threshold)
+    while n_samples < 5000:
+        threshold -= 0.1
+        n_samples = np.count_nonzero(proba[filtered == 1] >= threshold)
+    filtered[(filtered == 2) & (probas < threshold)] = 0
 
     # Samples classified as non-built-up in 2015
     proba2015_path = os.path.join(case_study.outputdir, 'probabilities.tif')
@@ -674,4 +689,3 @@ if __name__ == '__main__':
             print(str(year) + ' : done.')
         except MissingDataError:
             print(str(year) + ' : No satellite data available. Skipping...')
-
