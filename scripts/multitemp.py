@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import shutil
+import sys
 from datetime import datetime
 from math import floor
 from tempfile import TemporaryDirectory
@@ -321,10 +322,16 @@ if __name__ == '__main__':
     case_studies.drop(labels=DROPPED, inplace=True, errors='ignore')
 
     cities = []
-    for name, row in case_studies.iterrows():
-        case_study = CaseStudy(
-            name, row.latitude, row.longitude, DATA_DIR, row.country)
+    if len(sys.argv) > 1:
+        name = sys.argv[1]
+        lat, lon, country = case_studies.loc[name][['latitude', 'longitude', 'country']]
+        case_study = CaseStudy(name, lat, lon, DATA_DIR, country)
         cities.append(case_study)
+    else:
+        for name, row in case_studies.iterrows():
+            case_study = CaseStudy(
+                name, row.latitude, row.longitude, DATA_DIR, row.country)
+            cities.append(case_study)
     
     with ThreadPoolExecutor(max_workers=8) as pool:
         pool.map(multitemp_analysis, cities)
