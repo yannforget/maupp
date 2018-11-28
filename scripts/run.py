@@ -391,10 +391,10 @@ def filter_training(case_study, training_samples, sar, landsat, year):
     filtered = training_samples.copy()
     threshold = 0.5
     n_samples = np.count_nonzero(proba[filtered == 1] >= threshold)
-    while n_samples < 5000:
+    while n_samples < 5000 and threshold > 0:
         threshold -= 0.1
         n_samples = np.count_nonzero(proba[filtered == 1] >= threshold)
-    filtered[(filtered == 2) & (probas < threshold)] = 0
+    filtered[(filtered == 1) & (proba < threshold)] = 0
 
     # Samples classified as non-built-up in 2015
     proba2015_path = os.path.join(case_study.outputdir, 'probabilities.tif')
@@ -404,7 +404,7 @@ def filter_training(case_study, training_samples, sar, landsat, year):
             reproject(src.read(1), proba2015, src_transform=src.transform,
                       src_crs=src.crs, dst_transform=transform, dst_crs=crs,
                       resampling=Resampling.bilinear)
-        filtered[proba2015 <= 0.75] = 0
+        filtered[(filtered == 1) & (proba2015 <= 0.75)] = 0
 
     return filtered
 
@@ -682,7 +682,7 @@ if __name__ == '__main__':
     for year in reversed(sorted(YEARS)):
 
         try:
-            run(case_study, year)
+            run(case_study, year, override=True)
             print(str(year) + ' : done.')
         except MissingDataError:
             print(str(year) + ' : No satellite data available. Skipping...')
